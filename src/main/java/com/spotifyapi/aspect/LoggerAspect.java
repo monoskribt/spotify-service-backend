@@ -9,6 +9,7 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -40,12 +41,13 @@ public class LoggerAspect {
 
     @AfterThrowing(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))", throwing = "exception")
     public void afterThrowing(JoinPoint joinPoint, Throwable exception) {
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
         String methodName = joinPoint.getSignature().getName();
         String exceptionMessage = exception.toString();
 
         Logger logger = new Logger();
-        logger.setUsername(userService.getCurrentUsername());
-        logger.setUserId(userService.getCurrentId());
+        logger.setUsername(userInfoDTO.getNickname());
+        logger.setUserId(userInfoDTO.getUserId());
         logger.setMethodName(methodName);
         logger.setDateTime(LocalDateTime.now());
         logger.setMessage("Failed. Exception: " + exceptionMessage);

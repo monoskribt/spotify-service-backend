@@ -19,7 +19,7 @@ public class RetryAfterCatchAspect {
                 return joinPoint.proceed();
             } catch (TooManyRequestsException e) {
                 int retryAfter = e.getRetryAfter();
-                log.warn("Too many requests. Retrying after {} seconds...", retryAfter);
+                log.warn("Too many requests. Retrying after {} seconds", retryAfter);
                 Thread.sleep(retryAfter * 1000L);
             }
         }
