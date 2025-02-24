@@ -1,5 +1,6 @@
 package com.spotifyapi.aspect;
 
+import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.model.Logger;
 import com.spotifyapi.repository.LoggerRepository;
 import com.spotifyapi.service.UserService;
@@ -11,7 +12,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 
 @Aspect
 @Component
@@ -23,11 +23,13 @@ public class LoggerAspect {
 
     @AfterReturning(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))")
     public void afterReturning(JoinPoint joinPoint) {
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
+
         String methodName = joinPoint.getSignature().getName();
 
         Logger logger = new Logger();
-        logger.setUsername(userService.getCurrentUsername());
-        logger.setUserId(userService.getCurrentId());
+        logger.setUsername(userInfoDTO.getNickname());
+        logger.setUserId(userInfoDTO.getUserId());
         logger.setMethodName(methodName);
         logger.setDateTime(LocalDateTime.now());
         logger.setMessage("Successfully");
@@ -50,11 +52,5 @@ public class LoggerAspect {
         logger.setStatus("FAILED");
 
         loggerRepository.save(logger);
-    }
-
-
-
-    private String truncate(String value) {
-        return value.length() > 250 ? value.substring(0, 250) + "." : value;
     }
 }

@@ -2,7 +2,7 @@ package com.spotifyapi.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.spotifyapi.dto.SpotifyReleaseDTO;
+import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
 import com.spotifyapi.dto.TelegramMessageDTO;
 import com.spotifyapi.model.SpotifyRelease;
 import com.spotifyapi.model.User;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Service

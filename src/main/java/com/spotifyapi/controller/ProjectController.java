@@ -1,6 +1,7 @@
 package com.spotifyapi.controller;
 
 import com.spotifyapi.dto.TokensDTO;
+import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.props.CorsConfigurationProps;
 import com.spotifyapi.service.SpotifyAuth;
 import com.spotifyapi.service.UserService;
@@ -29,13 +30,14 @@ public class ProjectController {
     @GetMapping("/profile")
     public void getProfile(@RequestParam String code, HttpServletResponse response) throws IOException {
         TokensDTO tokens = spotifyAuth.getAuthorizationTokens(code);
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
 
         String redirectUrl = corsProps.allowedOrigins()
                 + "?access_token=" + tokens.getAccessToken()
                 + "&refresh_token=" + tokens.getRefreshToken();
 
         if(!userService.isAlreadyExist()) {
-            userService.saveUserOfData(tokens);
+            userService.saveUserOfData(tokens, userInfoDTO);
         }
         else {
             userService.updateUserData(tokens);

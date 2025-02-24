@@ -1,14 +1,15 @@
 package com.spotifyapi.controller;
 
-import com.spotifyapi.model.SpotifyArtist;
+import com.spotifyapi.dto.spotify_entity.SpotifyArtistDTO;
+import com.spotifyapi.dto.spotify_entity.SpotifyPlaylistsDTO;
+import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
+
 
 import java.util.List;
 import java.util.Set;
@@ -22,38 +23,38 @@ public class SpotifyController {
     private SpotifyService spotifyService;
 
     @GetMapping("/artists")
-    public List<SpotifyArtist> getMyArtist(@RequestHeader(value = "Authorization") String authorizationHeader) {
-
-        return spotifyService.getFollowedArtist(authorizationHeader);
+    public List<SpotifyArtistDTO> getMyArtist(@RequestHeader(value = "Authorization") String authorizationHeader) {
+        return spotifyService.getFollowedArtist(authorizationHeader, SpotifyArtistDTO.class);
     }
 
-    @GetMapping("/releases")
-    public List<AlbumSimplified> getReleasesByPeriod(
-            @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay,
-            @RequestHeader(value = "Authorization") String authorizationHeader) {
-        return spotifyService.getReleases(authorizationHeader, releaseOfDay);
-    }
 
     @GetMapping("/playlists")
-    public Set<PlaylistSimplified> getMyPlaylists(
+    public Set<SpotifyPlaylistsDTO> getMyPlaylists(
             @RequestHeader(value = "Authorization") String authorizationHeader) {
         return spotifyService.getOfUsersPlaylists(authorizationHeader);
     }
 
+    @GetMapping("/releases")
+    public List<SpotifyReleaseDTO> getReleasesByPeriod(
+            @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay,
+            @RequestHeader(value = "Authorization") String authorizationHeader) {
+        return spotifyService.getReleases(authorizationHeader, releaseOfDay, SpotifyReleaseDTO.class);
+    }
+
     @PostMapping("/playlists/{playlistId}/releases")
-    public ResponseEntity<String> saveReleasesToPlaylist(@PathVariable ("playlistId") String playlistId,
-                                                         @RequestParam ("releaseOfDay") Long releaseOfDay,
-                                                         @RequestHeader(value = "Authorization") String authorizationHeader) {
-        String result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
+    public ResponseEntity<Integer> saveReleasesToPlaylist(@PathVariable ("playlistId") String playlistId,
+                                                          @RequestParam ("releaseOfDay") Long releaseOfDay,
+                                                          @RequestHeader(value = "Authorization") String authorizationHeader) {
+        int result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(result);
     }
 
     @DeleteMapping("/playlists/{playlistId}/items")
-    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId,
-                                                                 @RequestHeader(value = "Authorization") String authorizationHeader) {
-        String result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
+    public ResponseEntity<Integer> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId,
+                                                                  @RequestHeader(value = "Authorization") String authorizationHeader) {
+        int result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(result);

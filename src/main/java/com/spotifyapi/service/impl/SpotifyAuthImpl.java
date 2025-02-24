@@ -50,7 +50,7 @@ public class SpotifyAuthImpl implements SpotifyAuth {
             return new TokensDTO(accessToken, refreshToken);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            log.error("Error retrieving authorization tokens", e);
+            log.warn("Error retrieving authorization tokens", e);
             throw new SpotifyAuthException("Invalid authorization code");
         }
     }
@@ -71,7 +71,7 @@ public class SpotifyAuthImpl implements SpotifyAuth {
             return new TokensDTO(accessToken, refreshToken);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            log.error("Error retrieving authorization tokens", e);
+            log.warn("Error retrieving authorization tokens", e);
             throw new SpotifyAuthException("Invalid refresh token");
         }
     }

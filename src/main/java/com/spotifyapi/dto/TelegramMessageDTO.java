@@ -1,5 +1,6 @@
 package com.spotifyapi.dto;
 
+import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

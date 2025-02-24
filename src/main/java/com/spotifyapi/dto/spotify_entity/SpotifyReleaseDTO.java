@@ -1,4 +1,4 @@
-package com.spotifyapi.dto;
+package com.spotifyapi.dto.spotify_entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 public class SpotifyReleaseDTO {
 
-    private String albumId;
-    private String albumName;
+    private String id;
+    private String name;
 
 }

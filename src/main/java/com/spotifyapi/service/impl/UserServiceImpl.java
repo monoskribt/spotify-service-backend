@@ -2,6 +2,7 @@ package com.spotifyapi.service.impl;
 
 
 import com.spotifyapi.dto.TokensDTO;
+import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.enums.SubscribeStatus;
 import com.spotifyapi.exception.SpotifyApiException;
 import com.spotifyapi.exception.UserNotFoundException;
@@ -45,11 +46,10 @@ public class UserServiceImpl implements UserService {
     private final PlaylistRepository playlistRepository;
     private final TrackRepository trackRepository;
     private final TokenService tokenService;
-    private final SpotifyAuth spotifyAuth;
 
     @Transactional
     @Override
-    public void saveUserOfData(TokensDTO tokens) {
+    public void saveUserOfData(TokensDTO tokens, UserInfoDTO userInfoDTO) {
         try {
             User newUser = new User();
 
@@ -58,11 +58,14 @@ public class UserServiceImpl implements UserService {
             newUser.setUsername(userProfile.getDisplayName());
             newUser.setEmail(userProfile.getEmail());
             newUser.setId(userProfile.getId());
-            newUser.setAccessToken("Bearer " + tokens.getAccessToken());
+            newUser.setAccessToken("access_token " + tokens.getAccessToken());
             newUser.setRefreshToken(tokens.getRefreshToken());
 
             newUser.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
             newUser.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
+
+            userInfoDTO.setUserId(userProfile.getId());
+            userInfoDTO.setNickname(userProfile.getDisplayName());
 
             userRepository.save(newUser);
 
@@ -117,7 +120,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(spotifyApi.getCurrentUsersProfile().build().execute().getId())
                 .orElseThrow(() -> new UserNotFoundException("User not found in DB"));
 
-        user.setAccessToken("Bearer " + tokensDTO.getAccessToken());
+        user.setAccessToken("access_token " + tokensDTO.getAccessToken());
         user.setRefreshToken(tokensDTO.getRefreshToken());
 
         user.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
@@ -187,6 +190,7 @@ public class UserServiceImpl implements UserService {
         return profile.getDisplayName();
     }
 
+
     @SneakyThrows
     @Override
     public String getCurrentId() {
@@ -194,16 +198,15 @@ public class UserServiceImpl implements UserService {
         return profile.getId();
     }
 
-    public String getAccessTokenFromDB(User u) {
-        String accessToken = u.getAccessToken();
-
-        if(tokenService.isValidAccessToken(u)) {
-            return accessToken;
-        } else {
-            tokenService.getNewAccessToken(u);
-            return u.getAccessToken();
+    @Override
+    public String getAccessTokenFromDB(User user) {
+        if (!tokenService.isValidAccessToken(user)) {
+            tokenService.getNewAccessToken(user);
+            userRepository.save(user);
         }
+        return user.getAccessToken();
     }
+
 
     @SneakyThrows
     @Override
