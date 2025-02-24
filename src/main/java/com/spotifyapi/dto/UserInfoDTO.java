@@ -13,13 +13,6 @@ public class UserInfoDTO {
     private String userId;
     private String status;
 
-    public UserInfoDTO(String nickname, String userId, String status) {
-        this.nickname = nickname;
-        this.userId = userId;
-        this.status = status;
-    }
-
-
     public UserInfoDTO(String nickname, String status) {
         this.nickname = nickname;
         this.status = status;

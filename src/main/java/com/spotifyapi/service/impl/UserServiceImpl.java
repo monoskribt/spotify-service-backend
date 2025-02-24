@@ -198,16 +198,15 @@ public class UserServiceImpl implements UserService {
         return profile.getId();
     }
 
-    public String getAccessTokenFromDB(User u) {
-        String accessToken = u.getAccessToken();
-
-        if(tokenService.isValidAccessToken(u)) {
-            return accessToken;
-        } else {
-            tokenService.getNewAccessToken(u);
-            return u.getAccessToken();
+    @Override
+    public String getAccessTokenFromDB(User user) {
+        if (!tokenService.isValidAccessToken(user)) {
+            tokenService.getNewAccessToken(user);
+            userRepository.save(user);
         }
+        return user.getAccessToken();
     }
+
 
     @SneakyThrows
     @Override

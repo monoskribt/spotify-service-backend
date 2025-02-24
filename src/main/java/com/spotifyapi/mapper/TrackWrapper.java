@@ -1,17 +1,15 @@
 package com.spotifyapi.mapper;
 
+import lombok.RequiredArgsConstructor;
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.util.Map;
 
+@RequiredArgsConstructor
 public class TrackWrapper extends AbstractTrack {
 
     private final Track track;
-
-    public TrackWrapper(Track track) {
-        this.track = track;
-    }
 
     @Override
     public String getId() {

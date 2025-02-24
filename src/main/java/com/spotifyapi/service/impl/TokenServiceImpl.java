@@ -31,6 +31,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
 
+    @Override
     public void getNewAccessToken(User u) {
         if(isValidRefreshToken(u)) {
             TokensDTO tokensDTO = spotifyAuth.getNewAccessToken(u.getRefreshToken());
@@ -51,7 +52,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
 
-    public boolean isValidRefreshToken(User u) {
+    private boolean isValidRefreshToken(User u) {
         if(u.getRefreshToken() == null || u.getExpiresRefreshTokenAt() == null) {
             return false;
         }

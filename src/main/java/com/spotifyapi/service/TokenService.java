@@ -11,6 +11,4 @@ public interface TokenService {
 
     boolean isValidAccessToken(User u);
 
-    boolean isValidRefreshToken(User u);
-
 }

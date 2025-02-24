@@ -57,6 +57,7 @@ public class PaginationServiceImpl implements PaginationService {
 
 
 
+    @RetryAfterRequest
     @SneakyThrows
     @Override
     public List<AlbumSimplified> paginationOfReleasesArtist(String artistId, Long releaseOfDay) {

@@ -57,7 +57,7 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
                         .sendMessageToTelegram(notification.getKey(), notification.getValue()));
     }
 
-    public Set<SpotifyRelease> checkReleasesForUser(User user) {
+    private Set<SpotifyRelease> checkReleasesForUser(User user) {
         String authorizationHeader = userService.getAccessTokenFromDB(user);
         log.info("is working method checkReleasesForUser with token: {}", authorizationHeader );
         List<AlbumSimplified> albumList = spotifyService.getReleases(authorizationHeader);
