@@ -28,8 +28,6 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
     private final RabbitMQService rabbitMQService;
     private final UserService userService;
 
-    private static final Logger logger = LoggerFactory.getLogger(SpotifyReleaseServiceImpl.class);
-
     @Override
     public void save(Set<SpotifyRelease> releaseList) {
         releaseRepository.saveAll(releaseList);
@@ -66,7 +64,7 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
                 .stream()
                 .map(SpotifyRelease::getId)
                 .toList();
-        logger.info(String.valueOf(alreadyContainsReleasesId));
+        log.info(String.valueOf(alreadyContainsReleasesId));
 
         Set<SpotifyRelease> checkListRelease = albumList.stream()
                 .filter(release -> !alreadyContainsReleasesId.contains(release.getId()))

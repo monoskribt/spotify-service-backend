@@ -21,8 +21,6 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -54,8 +52,6 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final TrackRepository trackRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final PaginationService paginationService;
-
-    private static final Logger logger = LoggerFactory.getLogger(SpotifyServiceImpl.class);
 
     @Override
     @SneakyThrows
@@ -224,7 +220,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .orElse(Collections.emptyList());
 
         if (allTracks.isEmpty()) {
-            logger.info("Playlist is already empty");
+            log.info("Playlist is already empty");
             return Response.SC_NO_CONTENT;
         }
 
@@ -254,7 +250,7 @@ public class SpotifyServiceImpl implements SpotifyService {
 
             return Response.SC_OK;
         } catch (Exception e) {
-            logger.error("Error while removing tracks from playlist: {}", e.getMessage());
+            log.warn("Error while removing tracks from playlist: {}", e.getMessage());
         }
         return Response.SC_INTERNAL_SERVER_ERROR;
     }
