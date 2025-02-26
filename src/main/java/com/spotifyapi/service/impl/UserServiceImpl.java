@@ -15,13 +15,13 @@ import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.*;
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
+import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.spotifyapi.constant.ConstantExpireTokenTime.ONE_HOUR;
 import static com.spotifyapi.constant.ConstantExpireTokenTime.ONE_WEEK;
@@ -51,21 +52,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public void saveUserOfData(TokensDTO tokens, UserInfoDTO userInfoDTO) {
         try {
-            User newUser = new User();
+            User newUser = buildUser(tokens);
 
-            var userProfile = spotifyApi.getCurrentUsersProfile().build().execute();
-
-            newUser.setUsername(userProfile.getDisplayName());
-            newUser.setEmail(userProfile.getEmail());
-            newUser.setId(userProfile.getId());
-            newUser.setAccessToken("access_token " + tokens.getAccessToken());
-            newUser.setRefreshToken(tokens.getRefreshToken());
-
-            newUser.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
-            newUser.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
-
-            userInfoDTO.setUserId(userProfile.getId());
-            userInfoDTO.setNickname(userProfile.getDisplayName());
+            userInfoDTO.setUserId(newUser.getId());
+            userInfoDTO.setNickname(newUser.getUsername());
 
             userRepository.save(newUser);
 
@@ -74,51 +64,67 @@ public class UserServiceImpl implements UserService {
                     .build()
                     .execute().getItems())
                     .toList();
+            List<SpotifyTrackFromPlaylist> saveTrackToDb = playlists.stream()
+                    .peek(playlist -> playlistService.savePlaylistToDatabase(playlist, newUser))
+                            .map(playlist -> playlistRepository.findById(playlist.getId())
+                                    .orElseThrow(() -> new IllegalArgumentException("Playlist not found after save")))
+                                    .flatMap(spotifyUserPlaylist -> {
+                                        try {
+                                            return Arrays.stream(
+                                                    spotifyApi.getPlaylistsItems(spotifyUserPlaylist.getId())
+                                                            .build()
+                                                            .execute()
+                                                            .getItems()
+                                            )
+                                                    .filter(Objects::nonNull)
+                                                    .map(trackItem -> (Track) trackItem.getTrack())
+                                                    .map(track -> spotifyTrackService.convertTrackToTrackDBEntity(new TrackWrapper(track), spotifyUserPlaylist));
+                                        } catch (IOException | SpotifyWebApiException | ParseException e) {
+                                            log.warn("Error fetching playlist tracks: {}", e.getMessage());
+                                            return Stream.empty();
+                                        }
+                                    }).toList();
 
-            List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
-
-            for (PlaylistSimplified playlist : playlists) {
-
-                playlistService.savePlaylistToDatabase(playlist, newUser);
-
-                SpotifyUserPlaylist spotifyUserPlaylist = playlistRepository.findById(playlist.getId())
-                        .orElseThrow(() -> new IllegalStateException("Playlist not found after save"));
-
-                List<PlaylistTrack> playlistTracks = Arrays.stream(
-                        spotifyApi.getPlaylistsItems(playlist.getId())
-                                .build()
-                                .execute()
-                                .getItems())
-                        .toList();
-
-                for (PlaylistTrack trackItem : playlistTracks) {
-                    if(trackItem != null) {
-                        Track track = (Track) trackItem.getTrack();
-
-                        SpotifyTrackFromPlaylist trackEntity = spotifyTrackService
-                                .convertTrackToTrackDBEntity(new TrackWrapper(track), spotifyUserPlaylist);
-
-                        saveTrackToDB.add(trackEntity);
-                    }
-                }
-
-            }
-
-            trackRepository.saveAll(saveTrackToDB);
-
+            trackRepository.saveAll(saveTrackToDb);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            log.error("Error while saving of user data: {}", e.getMessage());
+            log.warn("Error while saving of user data: {}", e.getMessage());
             throw new SpotifyApiException("Error while saving of user data: " + e.getMessage());
         }
     }
 
+    private User buildUser(TokensDTO tokens) {
+        User newUser = new User();
+        se.michaelthelin.spotify.model_objects.specification.User userProfile;
+        try {
+            userProfile = spotifyApi.getCurrentUsersProfile().build().execute();
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            log.warn("Error getting of user profile: {}", e.getMessage());
+            throw new SpotifyApiException("Error getting of user profile: " + e.getMessage());
+        }
 
-    @SneakyThrows
+        newUser.setUsername(userProfile.getDisplayName());
+        newUser.setEmail(userProfile.getEmail());
+        newUser.setId(userProfile.getId());
+        newUser.setAccessToken("access_token " + tokens.getAccessToken());
+        newUser.setRefreshToken(tokens.getRefreshToken());
+
+        newUser.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
+        newUser.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
+
+        return newUser;
+    }
+
     @Override
     public void updateUserData(TokensDTO tokensDTO) {
-        User user = userRepository.findById(spotifyApi.getCurrentUsersProfile().build().execute().getId())
-                .orElseThrow(() -> new UserNotFoundException("User not found in DB"));
+        User user;
+        try {
+            user = userRepository.findById(spotifyApi.getCurrentUsersProfile().build().execute().getId())
+                    .orElseThrow(() -> new UserNotFoundException("User not found in DB"));
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            log.warn("Error during of updating of user data: {}", e.getMessage());
+            throw new SpotifyApiException("Error during of updating of user data: " + e.getMessage());
+        }
 
         user.setAccessToken("access_token " + tokensDTO.getAccessToken());
         user.setRefreshToken(tokensDTO.getRefreshToken());
@@ -126,8 +132,14 @@ public class UserServiceImpl implements UserService {
         user.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
         user.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
 
-        List<PlaylistSimplified> getAllPlaylists = Arrays.stream(spotifyApi
-                .getListOfCurrentUsersPlaylists().build().execute().getItems()).toList();
+        List<PlaylistSimplified> getAllPlaylists;
+        try {
+            getAllPlaylists = Arrays.stream(spotifyApi
+                    .getListOfCurrentUsersPlaylists().build().execute().getItems()).toList();
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            log.warn("Error during of getting of user playlist: {}", e.getMessage());
+            throw new SpotifyApiException("Error during of getting of user playlist: " + e.getMessage());
+        }
 
         List<SpotifyTrackFromPlaylist> newTracks = new ArrayList<>();
 
@@ -137,8 +149,14 @@ public class UserServiceImpl implements UserService {
             if(existingPlaylist.isPresent()) {
                 SpotifyUserPlaylist currentPlaylist = existingPlaylist.get();
                 Set<String> playlistTracksUrl = spotifyTrackService.getExistingTrackIds(currentPlaylist.getId());
-                var tracksFromPlaylist = spotifyApi.getPlaylistsItems(currentPlaylist.getId())
-                        .build().execute();
+                Paging<PlaylistTrack> tracksFromPlaylist;
+                try {
+                    tracksFromPlaylist = spotifyApi.getPlaylistsItems(currentPlaylist.getId())
+                            .build().execute();
+                } catch (IOException | SpotifyWebApiException | ParseException e) {
+                    log.warn("Error getting of playlist items: {}", e.getMessage());
+                    throw new SpotifyApiException("Error getting of playlist items: " + e.getMessage());
+                }
 
                 for(PlaylistTrack track : tracksFromPlaylist.getItems()) {
                     if(!playlistTracksUrl.contains(track.getTrack().getId())) {
@@ -157,6 +175,7 @@ public class UserServiceImpl implements UserService {
         trackRepository.saveAll(newTracks);
         userRepository.save(user);
     }
+
 
     @Override
     public void manageSubscribeStatusOfUser(SubscribeStatus status) {
@@ -182,19 +201,27 @@ public class UserServiceImpl implements UserService {
         return u.getSubscribeStatus().toString();
     }
 
-
-    @SneakyThrows
     @Override
     public String getCurrentUsername() {
-        var profile = spotifyApi.getCurrentUsersProfile().build().execute();
+        se.michaelthelin.spotify.model_objects.specification.User profile;
+        try {
+            profile = spotifyApi.getCurrentUsersProfile().build().execute();
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            log.warn("Error getting of username users: {}", e.getMessage());
+            throw new SpotifyApiException("Error getting of username users: " + e.getMessage());
+        }
         return profile.getDisplayName();
     }
 
-
-    @SneakyThrows
     @Override
     public String getCurrentId() {
-        var profile = spotifyApi.getCurrentUsersProfile().build().execute();
+        se.michaelthelin.spotify.model_objects.specification.User profile;
+        try {
+            profile = spotifyApi.getCurrentUsersProfile().build().execute();
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            log.warn("Error getting of id users: {}", e.getMessage());
+            throw new SpotifyApiException("Error getting of id users: " + e.getMessage());
+        }
         return profile.getId();
     }
 
@@ -207,13 +234,16 @@ public class UserServiceImpl implements UserService {
         return user.getAccessToken();
     }
 
-
-    @SneakyThrows
     @Override
     public boolean isAlreadyExist() {
-         return userRepository.existsByEmail(spotifyApi
-                 .getCurrentUsersProfile()
-                 .build()
-                 .execute().getEmail());
+        try {
+            return userRepository.existsByEmail(spotifyApi
+                    .getCurrentUsersProfile()
+                    .build()
+                    .execute().getEmail());
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            log.warn("Error during getting of user email: {}", e.getMessage());
+            throw new SpotifyApiException("Error during getting of user email: " + e.getMessage());
+        }
     }
 }

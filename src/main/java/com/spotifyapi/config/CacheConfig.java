@@ -20,5 +20,4 @@ public class CacheConfig {
                 .expireAfterWrite(1, TimeUnit.HOURS));
         return cacheManager;
     }
-
 }

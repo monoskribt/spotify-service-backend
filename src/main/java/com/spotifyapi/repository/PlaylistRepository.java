@@ -9,5 +9,4 @@ import org.springframework.stereotype.Repository;
 public interface PlaylistRepository extends JpaRepository<SpotifyUserPlaylist, String> {
 
     boolean existsById(String id);
-
 }

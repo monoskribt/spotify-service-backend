@@ -7,6 +7,7 @@ import com.spotifyapi.dto.spotify_entity.SpotifyArtistDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyPlaylistsDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
 import com.spotifyapi.exception.PlaylistNotFoundException;
+import com.spotifyapi.exception.SpotifyApiException;
 import com.spotifyapi.mapper.TrackSimplifiedWrapper;
 import com.spotifyapi.model.ProgressArtistsUpdate;
 import com.spotifyapi.model.SpotifyArtist;
@@ -18,18 +19,20 @@ import com.spotifyapi.service.PaginationService;
 import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.Response;
+import org.apache.hc.core5.http.ParseException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.*;
 
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -54,7 +57,6 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final PaginationService paginationService;
 
     @Override
-    @SneakyThrows
     @Cacheable(value = "artists", key = "#authorizationHeader")
     public <T> List<T> getFollowedArtist(String authorizationHeader, Class<T> returnTypeOfClass) {
         List<SpotifyArtist> followedArtists = paginationService.paginationOfArtists();
@@ -64,7 +66,6 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .map(artis -> createNewInstanceOfArtist(returnTypeOfClass, artis))
                 .collect(Collectors.toList());
     }
-
 
     private <T> T createNewInstanceOfArtist(Class<T> returnTypeOf, SpotifyArtist artist) {
         if(returnTypeOf.equals(SpotifyArtist.class)) {
@@ -76,14 +77,18 @@ public class SpotifyServiceImpl implements SpotifyService {
         throw new IllegalArgumentException("Error type of class: " + returnTypeOf.getName());
     }
 
-
     @Override
-    @SneakyThrows
     @Cacheable(value = "playlists", key = "#authorizationHeader")
     public Set<SpotifyPlaylistsDTO> getOfUsersPlaylists(String authorizationHeader) {
-        var listOfPlaylist = Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
-                .build()
-                .execute().getItems()).collect(Collectors.toSet());
+        Set<PlaylistSimplified> listOfPlaylist;
+        try {
+            listOfPlaylist = Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
+                    .build()
+                    .execute().getItems()).collect(Collectors.toSet());
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            log.warn("Error during getting of users playlist: {}", e.getMessage(), e.getCause());
+            throw new SpotifyApiException("Error during getting of users playlist: " + e.getMessage());
+        }
 
         log.info("working is method 'getOfUsersPlaylists', but not cache");
         return listOfPlaylist.stream()
@@ -91,15 +96,12 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .collect(Collectors.toSet());
     }
 
-
     @Override
-    @SneakyThrows
     public List<AlbumSimplified> getReleases(String authorizationHeader) {
         return getReleases(authorizationHeader, THIRTY_DAYS, AlbumSimplified.class);
     }
 
     @Override
-    @SneakyThrows
     @Cacheable(value = "releases", key = "#authorizationHeader + '_' + #releaseOfDay")
     public <T> List<T> getReleases(String authorizationHeader, Long releaseOfDay,
                                    Class<T> returnTypeOfClass) {
@@ -120,14 +122,10 @@ public class SpotifyServiceImpl implements SpotifyService {
                                     totalArtists),
                             executorService)
                     ).toList();
-
-
             futures.forEach(future -> listOfAlbums.addAll(future.join()));
-
         } finally {
             executorService.shutdown();
         }
-
 
         log.info("Size of listOfAlbums: {}", listOfAlbums.size());
         log.info("working is method 'getReleases', but not cache");
@@ -163,7 +161,6 @@ public class SpotifyServiceImpl implements SpotifyService {
         throw new IllegalArgumentException("Error type of class: " + returnTypeOf.getName());
     }
 
-    @SneakyThrows
     @Override
     @Transactional
     public int saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay) {
@@ -204,15 +201,18 @@ public class SpotifyServiceImpl implements SpotifyService {
         for (int i = 0; i < trackUrl.size(); i += 50) {
             List<String> trackUrlPart = trackUrl.subList(i, Math.min(i + 50, trackUrl.size()));
 
-            spotifyApi.addItemsToPlaylist(playlistId, trackUrlPart.toArray(new String[0]))
-                    .build()
-                    .execute();
+            try {
+                spotifyApi.addItemsToPlaylist(playlistId, trackUrlPart.toArray(new String[0]))
+                        .build()
+                        .execute();
+            } catch (IOException | SpotifyWebApiException | ParseException e) {
+                log.warn("Error during to save of tracks to playlist: {}", e.getMessage(), e.getCause());
+                throw new SpotifyApiException("Error during to save of tracks to playlist: " + e.getMessage());
+            }
         }
-
         return Response.SC_OK;
     }
 
-    @SneakyThrows
     @Override
     @Transactional
     public int deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId) {

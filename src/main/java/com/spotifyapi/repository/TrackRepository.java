@@ -10,5 +10,4 @@ import java.util.List;
 public interface TrackRepository extends JpaRepository<SpotifyTrackFromPlaylist, String> {
 
     List<SpotifyTrackFromPlaylist> findAllByUserPlaylistId(String playlistId);
-
 }

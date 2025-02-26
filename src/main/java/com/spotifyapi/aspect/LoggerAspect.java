@@ -3,13 +3,11 @@ package com.spotifyapi.aspect;
 import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.model.Logger;
 import com.spotifyapi.repository.LoggerRepository;
-import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -19,13 +17,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class LoggerAspect {
     private final LoggerRepository loggerRepository;
-    private final UserService userService;
-
 
     @AfterReturning(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))")
     public void afterReturning(JoinPoint joinPoint) {
         UserInfoDTO userInfoDTO = new UserInfoDTO();
-
         String methodName = joinPoint.getSignature().getName();
 
         Logger logger = new Logger();

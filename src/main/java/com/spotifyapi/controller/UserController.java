@@ -21,7 +21,6 @@ public class UserController {
                 userService.getSubscribeStatusUsers());
     }
 
-
     @PutMapping("/subscribe")
     public ResponseEntity<String> manageSubscribeStatus(@RequestParam SubscribeStatus subscribeStatus) {
         userService.manageSubscribeStatusOfUser(subscribeStatus);

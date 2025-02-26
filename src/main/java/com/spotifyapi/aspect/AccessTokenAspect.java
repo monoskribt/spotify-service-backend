@@ -15,12 +15,10 @@ public class AccessTokenAspect {
     private final SpotifyApi spotifyApi;
     private final TokenService tokenService;
 
-
     @Before("execution(* com.spotifyapi.service.impl.SpotifyServiceImpl.*(..)) && args(authorizationHeader,..)")
     public void setAccessToken(String authorizationHeader) {
             String accessToken = tokenService.extractAccessToken(authorizationHeader);
             spotifyApi.setAccessToken(accessToken);
     }
-
 }
 

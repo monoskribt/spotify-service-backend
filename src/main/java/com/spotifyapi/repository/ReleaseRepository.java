@@ -10,5 +10,4 @@ import java.util.List;
 public interface ReleaseRepository extends JpaRepository<SpotifyRelease, String> {
 
     List<SpotifyRelease> findByUserId(String id);
-
 }

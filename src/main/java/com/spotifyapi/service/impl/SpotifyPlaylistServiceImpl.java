@@ -5,7 +5,6 @@ import com.spotifyapi.model.User;
 import com.spotifyapi.repository.PlaylistRepository;
 import com.spotifyapi.service.SpotifyPlaylistService;
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
@@ -15,28 +14,31 @@ public class SpotifyPlaylistServiceImpl implements SpotifyPlaylistService {
 
     private final PlaylistRepository playlistRepository;
 
-    @SneakyThrows
     @Override
     public boolean isAlreadyExistById(String playlistId) {
         return playlistRepository.existsById(playlistId);
     }
 
-
-    @SneakyThrows
     @Override
     public void savePlaylistToDatabase(PlaylistSimplified playlist, User user) {
         if(!isAlreadyExistById(playlist.getId())) {
-            SpotifyUserPlaylist spotifyUserPlaylist = new SpotifyUserPlaylist();
-
-            spotifyUserPlaylist.setId(playlist.getId());
-            spotifyUserPlaylist.setName(playlist.getName());
-            spotifyUserPlaylist.setExternalUrl(playlist.getExternalUrls().get("spotify"));
-            spotifyUserPlaylist.setOwnerName(playlist.getOwner().getDisplayName());
-            spotifyUserPlaylist.setSnapshotId(playlist.getSnapshotId());
-
-            spotifyUserPlaylist.setUser(user);
-
+            SpotifyUserPlaylist spotifyUserPlaylist =
+                    convertToSpotifyUserPlaylistEntity(playlist, user);
             playlistRepository.save(spotifyUserPlaylist);
         }
+    }
+
+    private static SpotifyUserPlaylist convertToSpotifyUserPlaylistEntity(PlaylistSimplified playlist,
+                                                                          User user) {
+        SpotifyUserPlaylist spotifyUserPlaylist = new SpotifyUserPlaylist();
+
+        spotifyUserPlaylist.setId(playlist.getId());
+        spotifyUserPlaylist.setName(playlist.getName());
+        spotifyUserPlaylist.setExternalUrl(playlist.getExternalUrls().get("spotify"));
+        spotifyUserPlaylist.setOwnerName(playlist.getOwner().getDisplayName());
+        spotifyUserPlaylist.setSnapshotId(playlist.getSnapshotId());
+
+        spotifyUserPlaylist.setUser(user);
+        return spotifyUserPlaylist;
     }
 }

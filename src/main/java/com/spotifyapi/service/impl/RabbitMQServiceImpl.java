@@ -8,7 +8,6 @@ import com.spotifyapi.model.SpotifyRelease;
 import com.spotifyapi.model.User;
 import com.spotifyapi.service.RabbitMQService;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -27,8 +26,6 @@ public class RabbitMQServiceImpl implements RabbitMQService {
     private final Binding binding;
     private final ObjectMapper objectMapper;
 
-
-    @SneakyThrows
     @Override
     public void sendMessageToTelegram(User user, Set<SpotifyRelease> releases) {
         List<SpotifyReleaseDTO> releaseInfo = releases.stream()

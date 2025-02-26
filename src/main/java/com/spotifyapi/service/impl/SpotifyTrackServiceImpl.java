@@ -28,7 +28,6 @@ public class SpotifyTrackServiceImpl implements SpotifyTrackService {
                 .collect(Collectors.toSet());
     }
 
-
     @Override
     public SpotifyTrackFromPlaylist convertTrackToTrackDBEntity(
             AbstractTrack track, SpotifyUserPlaylist playlist) {

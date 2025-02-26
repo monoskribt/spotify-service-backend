@@ -33,7 +33,6 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
         releaseRepository.saveAll(releaseList);
     }
 
-
     private List<SpotifyRelease> getReleasesByUserId(String id) {
         return releaseRepository.findByUserId(id);
     }
@@ -68,17 +67,18 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
 
         Set<SpotifyRelease> checkListRelease = albumList.stream()
                 .filter(release -> !alreadyContainsReleasesId.contains(release.getId()))
-                .map(release -> {
-                    SpotifyRelease spotifyRelease = new SpotifyRelease();
-                    spotifyRelease.setId(release.getId());
-                    spotifyRelease.setName(release.getName());
-                    spotifyRelease.setLocalDate(LocalDate.now());
-                    spotifyRelease.setUser(user);
-                    return spotifyRelease;
-                })
+                .map(release -> convertToSpotifyReleaseEntity(user, release))
                 .collect(Collectors.toSet());
-
         save(checkListRelease);
         return checkListRelease;
+    }
+
+    private static SpotifyRelease convertToSpotifyReleaseEntity(User user, AlbumSimplified release) {
+        SpotifyRelease spotifyRelease = new SpotifyRelease();
+        spotifyRelease.setId(release.getId());
+        spotifyRelease.setName(release.getName());
+        spotifyRelease.setLocalDate(LocalDate.now());
+        spotifyRelease.setUser(user);
+        return spotifyRelease;
     }
 }

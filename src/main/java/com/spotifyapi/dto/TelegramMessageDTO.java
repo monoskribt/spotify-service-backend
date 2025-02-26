@@ -12,5 +12,4 @@ public class TelegramMessageDTO {
 
     private String email;
     private List<SpotifyReleaseDTO> releases;
-
 }

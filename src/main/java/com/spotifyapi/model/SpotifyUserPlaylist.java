@@ -27,5 +27,4 @@ public class SpotifyUserPlaylist {
 
     @OneToMany(mappedBy = "userPlaylist", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SpotifyTrackFromPlaylist> tracks;
-
 }
