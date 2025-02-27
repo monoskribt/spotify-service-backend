@@ -29,5 +29,4 @@ public class Logger {
     private String message;
 
     private String status;
-
 }

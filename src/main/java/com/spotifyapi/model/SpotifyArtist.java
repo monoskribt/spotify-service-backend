@@ -19,7 +19,5 @@ public class SpotifyArtist {
 
     @Id
     private String id;
-
     private String name;
-
 }

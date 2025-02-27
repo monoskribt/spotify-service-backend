@@ -30,7 +30,6 @@ public class TokenServiceImpl implements TokenService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid Authorization header"));
     }
 
-
     @Override
     public void getNewAccessToken(User u) {
         if(isValidRefreshToken(u)) {
@@ -42,7 +41,6 @@ public class TokenServiceImpl implements TokenService {
         }
     }
 
-
     @Override
     public boolean isValidAccessToken(User u) {
         if (u.getAccessToken().isEmpty() || u.getExpiresAccessTokenAt() == null) {
@@ -50,7 +48,6 @@ public class TokenServiceImpl implements TokenService {
         }
         return Instant.now().isBefore(u.getExpiresAccessTokenAt());
     }
-
 
     private boolean isValidRefreshToken(User u) {
         if(u.getRefreshToken() == null || u.getExpiresRefreshTokenAt() == null) {

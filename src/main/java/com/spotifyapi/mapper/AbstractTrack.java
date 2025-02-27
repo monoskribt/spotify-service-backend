@@ -11,5 +11,4 @@ public abstract class AbstractTrack {
     public abstract String getName();
     public abstract Map<String, String> getExternalUrls();
     public abstract ArtistSimplified[] getArtists();
-
 }

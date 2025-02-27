@@ -12,5 +12,4 @@ public class SpotifyPlaylistsDTO {
 
     private String id;
     private String name;
-
 }

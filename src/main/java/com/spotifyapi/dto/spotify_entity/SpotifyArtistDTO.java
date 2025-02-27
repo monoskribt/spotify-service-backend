@@ -10,5 +10,4 @@ import lombok.Setter;
 public class SpotifyArtistDTO {
 
     private String name;
-
 }

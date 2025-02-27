@@ -12,5 +12,4 @@ public class ProgressArtistsUpdate {
 
     private int processed;
     private int total;
-
 }

@@ -9,5 +9,4 @@ public class SpotifyReleaseDTO {
 
     private String id;
     private String name;
-
 }
