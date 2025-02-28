@@ -4,6 +4,7 @@ package com.spotifyapi.service.impl;
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.enums.SubscribeStatus;
+import com.spotifyapi.exception.PlaylistNotFoundException;
 import com.spotifyapi.exception.SpotifyApiException;
 import com.spotifyapi.exception.UserNotFoundException;
 import com.spotifyapi.mapper.TrackWrapper;
@@ -67,7 +68,7 @@ public class UserServiceImpl implements UserService {
             List<SpotifyTrackFromPlaylist> saveTrackToDb = playlists.stream()
                     .peek(playlist -> playlistService.savePlaylistToDatabase(playlist, newUser))
                             .map(playlist -> playlistRepository.findById(playlist.getId())
-                                    .orElseThrow(() -> new IllegalArgumentException("Playlist not found after save")))
+                                    .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found after save")))
                                     .flatMap(spotifyUserPlaylist -> {
                                         try {
                                             return Arrays.stream(

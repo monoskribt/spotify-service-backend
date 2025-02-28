@@ -10,5 +10,4 @@ public interface TokenService {
     void getNewAccessToken(User u);
 
     boolean isValidAccessToken(User u);
-
 }
