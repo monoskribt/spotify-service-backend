@@ -5,7 +5,9 @@ import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
 import com.spotifyapi.service.SpotifyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 
@@ -14,6 +16,7 @@ import java.util.*;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(MockitoExtension.class)
 class SpotifyControllerTest {
 
     @Mock
@@ -28,7 +31,6 @@ class SpotifyControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         authorizationHeader = "test-token";
         releaseOfDay = 10L;
         playlistId = "12345";
