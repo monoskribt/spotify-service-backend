@@ -8,5 +8,4 @@ import java.util.Set;
 public interface RabbitMQService {
 
     void sendMessageToTelegram(User user, Set<SpotifyRelease> releases);
-
 }

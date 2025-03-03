@@ -16,5 +16,4 @@ public interface PaginationService {
     List<TrackSimplified> paginationOfSaveReleasesMethod(String albumId);
 
     List<PlaylistTrack> paginationOfDeleteReleasesMethod(String playlistId);
-
 }

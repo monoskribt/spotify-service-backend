@@ -8,5 +8,4 @@ public interface SpotifyPlaylistService {
     boolean isAlreadyExistById(String playlistId);
 
     void savePlaylistToDatabase(PlaylistSimplified playlist, User user);
-
 }

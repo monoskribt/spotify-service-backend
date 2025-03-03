@@ -19,6 +19,8 @@ import com.spotifyapi.service.PaginationService;
 import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.Response;
 import org.apache.hc.core5.http.ParseException;
@@ -44,7 +46,7 @@ import java.util.stream.Collectors;
 import static com.spotifyapi.constant.ConstantDayForReleases.THIRTY_DAYS;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 @EnableAsync
 @Slf4j
 public class SpotifyServiceImpl implements SpotifyService {
@@ -151,7 +153,7 @@ public class SpotifyServiceImpl implements SpotifyService {
         return albums;
     }
 
-    private <T> T createNewInstanceOfReleases(Class<T> returnTypeOf, AlbumSimplified album) {
+    public <T> T createNewInstanceOfReleases(Class<T> returnTypeOf, AlbumSimplified album) {
         if(returnTypeOf.equals(AlbumSimplified.class)) {
             return returnTypeOf.cast(album);
         } else if(returnTypeOf.equals(SpotifyReleaseDTO.class)) {
