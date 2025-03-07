@@ -1,41 +1,37 @@
+import com.spotifyapi.SpotifyApiApplication;
 import com.spotifyapi.controller.ProjectController;
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.props.CorsConfigurationProps;
 import com.spotifyapi.service.SpotifyAuth;
 import com.spotifyapi.service.UserService;
-import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-import java.io.IOException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(ProjectController.class)
+@ContextConfiguration(classes = SpotifyApiApplication.class)
 public class ProjectControllerTest {
 
-    @Mock
-    private SpotifyAuth spotifyAuth;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @Mock
-    private UserService userService;
+    @MockitoBean
+    SpotifyAuth spotifyAuth;
 
-    @Mock
-    private CorsConfigurationProps corsProps;
+    @MockitoBean
+    UserService userService;
 
-    @Mock
-    private HttpServletResponse response;
-
-    @InjectMocks
-    private ProjectController projectController;
+    @MockitoBean
+    CorsConfigurationProps corsProps;
 
     private String spotifyAuthUrl;
     private String authorizeCode;
@@ -54,35 +50,36 @@ public class ProjectControllerTest {
     }
 
     @Test
-    void testLogin() {
+    void login() throws Exception {
         when(spotifyAuth.authorize()).thenReturn(spotifyAuthUrl);
 
-        ResponseEntity<String> result = projectController.spotifyLogin();
+        mockMvc.perform(get("/api/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(spotifyAuthUrl));
 
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertNotEquals(result.getStatusCode(), HttpStatus.UNAUTHORIZED);
-        assertEquals(spotifyAuthUrl, result.getBody());
         verify(spotifyAuth).authorize();
     }
 
     @Test
-    void testGetProfileWithSaveUser() throws IOException {
+    void getProfileWithSaveUser() throws Exception {
         TokensDTO tokensDTO = new TokensDTO(accessToken, refreshToken);
 
         when(spotifyAuth.getAuthorizationTokens(authorizeCode))
                 .thenReturn(tokensDTO);
-
         when(userService.isAlreadyExist()).thenReturn(false);
         when(corsProps.allowedOrigins()).thenReturn("http://allowed-origin");
 
-        projectController.getProfile(authorizeCode, response);
+        mockMvc.perform(get("/api/profile")
+                        .param("code", authorizeCode))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", redirectUrl));
 
         verify(userService).saveUserOfData(eq(tokensDTO), any(UserInfoDTO.class));
-        verify(response).sendRedirect(redirectUrl);
+        verify(userService, never()).updateUserData(tokensDTO);
     }
 
     @Test
-    void testGetProfileWithUpdateUser() throws IOException {
+    void getProfileWithUpdateUser() throws Exception {
         TokensDTO tokensDTO = new TokensDTO(accessToken, refreshToken);
 
         when(spotifyAuth.getAuthorizationTokens(authorizeCode))
@@ -90,9 +87,12 @@ public class ProjectControllerTest {
         when(userService.isAlreadyExist()).thenReturn(true);
         when(corsProps.allowedOrigins()).thenReturn("http://allowed-origin");
 
-        projectController.getProfile(authorizeCode, response);
+        mockMvc.perform(get("/api/profile")
+                        .param("code", authorizeCode))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", redirectUrl));
 
         verify(userService).updateUserData(tokensDTO);
-        verify(response).sendRedirect(redirectUrl);
+        verify(userService, never()).saveUserOfData(eq(tokensDTO), any(UserInfoDTO.class));
     }
 }

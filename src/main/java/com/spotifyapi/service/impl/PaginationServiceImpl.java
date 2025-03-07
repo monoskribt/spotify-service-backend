@@ -5,6 +5,7 @@ import com.spotifyapi.exception.SpotifyApiException;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.PaginationService;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,7 @@ public class PaginationServiceImpl implements PaginationService {
 
     @RetryAfterRequest
     @Override
+    @SneakyThrows
     public List<AlbumSimplified> paginationOfReleasesArtist(String artistId, Long releaseOfDay) {
         List<AlbumSimplified> albums = new ArrayList<>();
         DateTimeFormatter yearMonthDayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -71,24 +73,16 @@ public class PaginationServiceImpl implements PaginationService {
 
         do {
             Paging<AlbumSimplified> items;
-            try {
-                items = spotifyApi.getArtistsAlbums(artistId)
-                        .setQueryParameter("include_groups", "album,single")
-                        .limit(50)
-                        .offset(offset)
-                        .build()
-                        .execute();
-            } catch (IOException | SpotifyWebApiException | ParseException e) {
-                log.warn("Error during getting of artist albums: {}", e.getMessage(), e.getCause());
-                throw new SpotifyApiException("Error during getting of artist albums: " + e.getMessage());
-            }
-
-
+            items = spotifyApi.getArtistsAlbums(artistId)
+                    .setQueryParameter("include_groups", "album,single")
+                    .limit(50)
+                    .offset(offset)
+                    .build()
+                    .execute();
             if (items == null || items.getItems().length == 0) {
                 log.info("No albums for artist: {}", artistId);
                 break;
             }
-
             albums.addAll(Arrays.stream(items.getItems())
                     .filter(album -> {
                         try {
@@ -102,10 +96,8 @@ public class PaginationServiceImpl implements PaginationService {
                         }
                     })
                     .toList());
-
             nextPage = items.getNext();
             offset += 50;
-
         } while (nextPage != null);
 
         return albums;
@@ -130,26 +122,20 @@ public class PaginationServiceImpl implements PaginationService {
 
     @RetryAfterRequest
     @Override
+    @SneakyThrows
     public List<TrackSimplified> paginationOfSaveReleasesMethod(String albumId) {
         List<TrackSimplified> tracks = new ArrayList<>();
-
         int offset = 0;
         String nextPage;
 
         do {
-            Paging<TrackSimplified> tracksPage;
-            try {
-                tracksPage = spotifyApi.getAlbumsTracks(albumId)
-                        .limit(50)
-                        .offset(offset)
-                        .build()
-                        .execute();
-            } catch (IOException | SpotifyWebApiException | ParseException e) {
-                log.warn("Error during getting of track albums: {}", e.getMessage(), e.getCause());
-                throw new SpotifyApiException("Error during getting of track albums: " + e.getMessage());
-            }
+            Paging<TrackSimplified> tracksPage = spotifyApi.getAlbumsTracks(albumId)
+                    .limit(50)
+                    .offset(offset)
+                    .build()
+                    .execute();
 
-            if(tracksPage.getItems() == null || tracksPage.getItems().length == 0) {
+            if (tracksPage.getItems() == null || tracksPage.getItems().length == 0) {
                 break;
             }
 
@@ -157,10 +143,12 @@ public class PaginationServiceImpl implements PaginationService {
 
             nextPage = tracksPage.getNext();
             offset += 50;
+
         } while (nextPage != null);
 
         return tracks;
     }
+
 
     @Override
     public List<PlaylistTrack> paginationOfDeleteReleasesMethod(String playlistId) {

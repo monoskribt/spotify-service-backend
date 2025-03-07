@@ -18,8 +18,6 @@ import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.service.PaginationService;
 import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.SpotifyTrackService;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.Response;
@@ -218,10 +216,14 @@ public class SpotifyServiceImpl implements SpotifyService {
     @Override
     @Transactional
     public int deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId) {
-        List<PlaylistTrack> allTracks = Optional.ofNullable(paginationService.paginationOfDeleteReleasesMethod(playlistId))
+        List<PlaylistTrack> allTracks = Optional.ofNullable(paginationService
+                        .paginationOfDeleteReleasesMethod(playlistId))
                 .orElse(Collections.emptyList());
+        List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository
+                .findAllByUserPlaylistId(playlistId);
 
-        if (allTracks.isEmpty()) {
+
+        if (allTracks.isEmpty() && tracksToRemove.isEmpty()) {
             log.info("Playlist is already empty");
             return Response.SC_NO_CONTENT;
         }
@@ -247,7 +249,6 @@ public class SpotifyServiceImpl implements SpotifyService {
                         .execute();
             }
 
-            List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository.findAllByUserPlaylistId(playlistId);
             trackRepository.deleteAll(tracksToRemove);
 
             return Response.SC_OK;

@@ -27,7 +27,6 @@ public class SpotifyController {
         return spotifyService.getFollowedArtist(authorizationHeader, SpotifyArtistDTO.class);
     }
 
-
     @GetMapping("/playlists")
     public Set<SpotifyPlaylistsDTO> getMyPlaylists(
             @RequestHeader(value = "Authorization") String authorizationHeader) {

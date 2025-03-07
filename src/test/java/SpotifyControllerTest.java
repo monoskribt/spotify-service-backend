@@ -1,150 +1,171 @@
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.spotifyapi.SpotifyApiApplication;
 import com.spotifyapi.controller.SpotifyController;
 import com.spotifyapi.dto.spotify_entity.SpotifyArtistDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyPlaylistsDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
 import com.spotifyapi.service.SpotifyService;
+import org.apache.catalina.connector.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 
 import java.util.*;
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
+
+
+@WebMvcTest(SpotifyController.class)
+@ContextConfiguration(classes = SpotifyApiApplication.class)
 class SpotifyControllerTest {
 
-    @Mock
-    private SpotifyService spotifyService;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @InjectMocks
-    private SpotifyController spotifyController;
+    @MockitoBean
+    SpotifyService spotifyService;
 
-    private String authorizationHeader;
+    private String accessToken;
     private Long releaseOfDay;
-    private String playlistId;
 
     @BeforeEach
-    void setUp() {
-        authorizationHeader = "test-token";
-        releaseOfDay = 10L;
-        playlistId = "12345";
+    void init() {
+        accessToken = "test-token";
+        releaseOfDay = 30L;
     }
 
     @Test
-    void testGetMyArtist() {
-        List<SpotifyArtistDTO> listOfArtist = Arrays.asList(new SpotifyArtistDTO("Artist-1"),
-                new SpotifyArtistDTO("Artist-2"));
+    void testGetMyArtist() throws Exception {
+        List<SpotifyArtistDTO> artists = List.of(
+                new SpotifyArtistDTO("Artist-1"),
+                new SpotifyArtistDTO("Artist-2")
+        );
 
-        when(spotifyService.getFollowedArtist(eq(authorizationHeader), eq(SpotifyArtistDTO.class)))
-                        .thenReturn(listOfArtist);
+        when(spotifyService.getFollowedArtist(accessToken, SpotifyArtistDTO.class))
+                .thenReturn(artists);
 
-        List<SpotifyArtistDTO> resultList = spotifyController.getMyArtist(authorizationHeader);
-
-        assertNotNull(resultList);
-
-        assertEquals(2, resultList.size());
-
-        assertEquals("Artist-1", resultList.get(0).getName());
-        assertEquals("Artist-2", resultList.get(1).getName());
+        mockMvc.perform(get("/api/spotify/artists")
+                        .header("Authorization", accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Artist-1"))
+                .andExpect(jsonPath("$[1].name").value("Artist-2"))
+                .andDo(res -> System.out.println(res.getResponse().getContentAsString()));
     }
 
     @Test
-    void testGetMyPlaylists() {
-        Set<SpotifyPlaylistsDTO> listOfPlaylist = Set.of(new SpotifyPlaylistsDTO("1", "Playlist-1"),
-                new SpotifyPlaylistsDTO("1", "Playlist-2"));
-
-        when(spotifyService.getOfUsersPlaylists(authorizationHeader))
-                .thenReturn(listOfPlaylist);
-
-        Set<SpotifyPlaylistsDTO> resultList = spotifyController.getMyPlaylists(authorizationHeader);
-
-        assertNotNull(resultList);
-
-        assertEquals(2, resultList.size());
-
-        assertTrue(resultList.stream()
-                .anyMatch(playlist -> playlist.getName().equals("Playlist-1")));
-        assertTrue(resultList.stream()
-                .anyMatch(playlist -> playlist.getName().equals("Playlist-2")));
-        assertFalse(resultList.stream()
-                .anyMatch(playlist -> playlist.getName().equals("Playlist")));
-    }
-
-    @Test
-    void testGerReleasesByLastTenDays() {
-        List<SpotifyReleaseDTO> listOfReleases = Arrays.asList(
+    void getReleases() throws Exception {
+        List<SpotifyReleaseDTO> listOfReleases = List.of(
                 new SpotifyReleaseDTO("1", "Release-1"),
                 new SpotifyReleaseDTO("2", "Release-2"),
                 new SpotifyReleaseDTO("3", "Release-3")
         );
 
-        when(spotifyService.getReleases(eq(authorizationHeader), eq(releaseOfDay), eq(SpotifyReleaseDTO.class)))
+        when(spotifyService
+                .getReleases(accessToken, releaseOfDay, SpotifyReleaseDTO.class))
                 .thenReturn(listOfReleases);
 
-        List<SpotifyReleaseDTO> result = spotifyController
-                .getReleasesByPeriod(releaseOfDay, authorizationHeader);
-
-        assertNotNull(result);
-        assertTrue(result.stream()
-                .anyMatch(release -> release.getName().equals("Release-3")));
+        mockMvc.perform(get("/api/spotify/releases")
+                        .header("Authorization", accessToken)
+                        .param("releaseOfDay", releaseOfDay.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].name").value("Release-1"))
+                .andExpect(jsonPath("$[1].name").value("Release-2"))
+                .andExpect(jsonPath("$[2].name").value("Release-3"));
     }
 
     @Test
-    void testSaveReleasesToPlaylist() {
-        List<String> resultList = new ArrayList<>();
+    void getMyPlaylists() throws Exception {
+        Set<SpotifyPlaylistsDTO> playlists = new HashSet<>();
+        playlists.add(new SpotifyPlaylistsDTO("1", "Playlist-1"));
+        playlists.add(new SpotifyPlaylistsDTO("2", "Playlist-2"));
+        playlists.add(new SpotifyPlaylistsDTO("3", "Playlist-3"));
 
-        List<String> listOfTrack = List.of("track-1", "track-2", "track-3");
+        when(spotifyService.getOfUsersPlaylists(accessToken))
+                .thenReturn(playlists);
 
-        when(spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay))
-                .thenAnswer(call -> {
-                    resultList.addAll(listOfTrack);
-                    return resultList.size();
+        MvcResult result = mockMvc.perform(get("/api/spotify/playlists")
+                        .header("Authorization", accessToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+        ObjectMapper mapper = new ObjectMapper();
+        Set<SpotifyPlaylistsDTO> responsePlaylists = mapper.readValue(responseBody,
+                new TypeReference<>() {
                 });
 
-        ResponseEntity<Integer> response = spotifyController
-                .saveReleasesToPlaylist(playlistId, releaseOfDay, authorizationHeader);
-
-        assertNotNull(response);
-
-        assertFalse(resultList.isEmpty());
-        assertEquals(3, resultList.size());
-        assertTrue(resultList.stream()
-                .anyMatch(track -> track.equals("track-1")));
-        assertTrue(resultList.containsAll(listOfTrack));
-
-        verify(spotifyService, times(1))
-                .saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
+        assertFalse(responsePlaylists.isEmpty());
+        assertEquals(3, playlists.size());
+        assertTrue(responsePlaylists.stream()
+                .anyMatch(ply -> ply.getName().equals("Playlist-2")));
     }
 
     @Test
-    void testDeleteAllOfTrackFromPlaylistById_withSuccessfulStatus() {
-        when(spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId))
-                .thenReturn(200);
+    void saveReleasesWithOKStatus() throws Exception {
+        String playlistId = "playlist-1";
 
-        ResponseEntity<Integer> result =
-                spotifyController.deleteAllItemsFromPlaylistById(playlistId, authorizationHeader);
+        when(spotifyService.saveReleasesToPlaylistById(accessToken, playlistId, releaseOfDay))
+                .thenReturn(Response.SC_OK);
 
-        assertNotNull(result);
-
-        assertEquals(200, result.getBody());
+        mockMvc.perform(post("/api/spotify/playlists/{playlistId}/releases", playlistId)
+                        .param("releaseOfDay", releaseOfDay.toString())
+                        .header("Authorization", accessToken))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void testDeleteAllOfTrackFromPlaylistById_withNoContentStatus() {
-        when(spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId))
-                .thenReturn(204);
+    void saveReleasesWithNoContentStatus() throws Exception {
+        String playlistId = "playlist-1";
 
-        ResponseEntity<Integer> result =
-                spotifyController.deleteAllItemsFromPlaylistById(playlistId, authorizationHeader);
+        when(spotifyService.saveReleasesToPlaylistById(accessToken, playlistId, releaseOfDay))
+                .thenReturn(Response.SC_NO_CONTENT);
 
-        assertNotNull(result);
+        mockMvc.perform(post("/api/spotify/playlists/{playlistId}/releases", playlistId)
+                        .param("releaseOfDay", releaseOfDay.toString())
+                        .header("Authorization", accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(204));
+    }
 
-        assertEquals(204, result.getBody());
+    @Test
+    void deleteAllItemsFromPlaylistWithOKStatus() throws Exception {
+        String playlistId = "playlist-1";
+
+        when(spotifyService.deleteAllOfTracksFromPlaylistById(accessToken, playlistId))
+                .thenReturn(Response.SC_OK);
+
+        mockMvc.perform(delete("/api/spotify/playlists/{playlistId}/items", playlistId)
+                        .header("Authorization", accessToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void deleteAllItemsFromPlaylistWithNoContentStatus() throws Exception {
+        String playlistId = "playlist-1";
+
+        when(spotifyService.deleteAllOfTracksFromPlaylistById(accessToken, playlistId))
+                .thenReturn(Response.SC_NO_CONTENT);
+
+        mockMvc.perform(delete("/api/spotify/playlists/{playlistId}/items", playlistId)
+                    .header("Authorization", accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(204));
     }
 }
+
+
