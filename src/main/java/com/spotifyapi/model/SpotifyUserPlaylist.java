@@ -25,7 +25,6 @@ public class SpotifyUserPlaylist {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToMany(mappedBy = "userPlaylist", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "userPlaylist", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SpotifyTrackFromPlaylist> tracks;
-
 }

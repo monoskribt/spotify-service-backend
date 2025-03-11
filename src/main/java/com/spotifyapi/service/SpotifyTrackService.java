@@ -12,5 +12,4 @@ public interface SpotifyTrackService {
 
     SpotifyTrackFromPlaylist convertTrackToTrackDBEntity(
             AbstractTrack track, SpotifyUserPlaylist playlist);
-
 }

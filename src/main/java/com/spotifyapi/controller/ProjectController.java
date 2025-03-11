@@ -1,17 +1,14 @@
 package com.spotifyapi.controller;
 
 import com.spotifyapi.dto.TokensDTO;
-import com.spotifyapi.service.CookieService;
+import com.spotifyapi.dto.UserInfoDTO;
+import com.spotifyapi.props.CorsConfigurationProps;
 import com.spotifyapi.service.SpotifyAuth;
-import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
@@ -23,32 +20,28 @@ public class ProjectController {
 
     private final SpotifyAuth spotifyAuth;
     private final UserService userService;
-    private final CookieService cookieService;
+    private final CorsConfigurationProps corsProps;
 
     @GetMapping("/login")
-    public void spotifyLogin(HttpServletResponse response) throws IOException {
-        response.sendRedirect(spotifyAuth.authorize());
+    public ResponseEntity<String> spotifyLogin() {
+        return ResponseEntity.ok(spotifyAuth.authorize());
     }
 
     @GetMapping("/profile")
-    public String getProfile(@RequestParam String code, HttpServletResponse response) {
+    public void getProfile(@RequestParam String code, HttpServletResponse response) throws IOException {
         TokensDTO tokens = spotifyAuth.getAuthorizationTokens(code);
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
 
-        cookieService.setCookieAccessToken(response, tokens);
-        cookieService.setCookieRefreshToken(response, tokens);
+        String redirectUrl = corsProps.allowedOrigins()
+                + "?access_token=" + tokens.getAccessToken()
+                + "&refresh_token=" + tokens.getRefreshToken();
 
         if(!userService.isAlreadyExist()) {
-            userService.saveUserOfData(tokens);
-            return "User profile saved successfully!";
+            userService.saveUserOfData(tokens, userInfoDTO);
         }
         else {
-            return "Welcome back!";
+            userService.updateUserData(tokens);
         }
-    }
-
-
-    @GetMapping("/info")
-    public String getInfo() {
-        return "Welcome to your info";
+        response.sendRedirect(redirectUrl);
     }
 }

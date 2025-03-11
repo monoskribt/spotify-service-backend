@@ -1,20 +1,7 @@
 package com.spotifyapi.props;
 
-import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@Component
-@Getter
-public class SpotifyProps {
-
-    @Value("${spotify.client-id}")
-    private String clientId;
-
-    @Value("${spotify.client-secret}")
-    private String clientSecret;
-
-    @Value("${spotify.redirect-url}")
-    private String redirectUrl;
-
+@ConfigurationProperties(prefix = "spotify")
+public record SpotifyProps(String clientId, String clientSecret, String redirectUrl, String userInfoUri) {
 }

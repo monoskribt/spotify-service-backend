@@ -3,14 +3,14 @@ package com.spotifyapi.service.impl;
 import com.spotifyapi.model.SpotifyRelease;
 import com.spotifyapi.model.User;
 import com.spotifyapi.repository.ReleaseRepository;
-import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.RabbitMQService;
 import com.spotifyapi.service.SpotifyReleaseService;
 import com.spotifyapi.service.SpotifyService;
+import com.spotifyapi.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 
@@ -20,28 +20,27 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
 
     private final ReleaseRepository releaseRepository;
     private final SpotifyService spotifyService;
-    private final UserRepository userRepository;
     private final RabbitMQService rabbitMQService;
-
-    private static final Logger logger = LoggerFactory.getLogger(SpotifyReleaseServiceImpl.class);
+    private final UserService userService;
 
     @Override
     public void save(Set<SpotifyRelease> releaseList) {
         releaseRepository.saveAll(releaseList);
     }
 
-    @Override
-    public List<SpotifyRelease> getReleasesByUserId(String id) {
+    private List<SpotifyRelease> getReleasesByUserId(String id) {
         return releaseRepository.findByUserId(id);
     }
 
     @Override
     public void checkReleasesForAllUsers() {
-        List<User> userList = userRepository.findAll();
+        Set<User> userList = userService.getAllUsersWithSubscribeStatus();
+        log.info("is working method checkReleasesForAllUsers");
 
         Map<User, Set<SpotifyRelease>> userReleases = userList.stream()
                 .collect(Collectors.toMap(
@@ -56,27 +55,30 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
     }
 
     private Set<SpotifyRelease> checkReleasesForUser(User user) {
-        List<AlbumSimplified> albumList = spotifyService.getReleases();
+        String authorizationHeader = userService.getAccessTokenFromDB(user);
+        log.info("is working method checkReleasesForUser with token: {}", authorizationHeader );
+        List<AlbumSimplified> albumList = spotifyService.getReleases(authorizationHeader);
 
         List<String> alreadyContainsReleasesId = getReleasesByUserId(user.getId())
                 .stream()
                 .map(SpotifyRelease::getId)
                 .toList();
-        logger.info(String.valueOf(alreadyContainsReleasesId));
+        log.info(String.valueOf(alreadyContainsReleasesId));
 
         Set<SpotifyRelease> checkListRelease = albumList.stream()
                 .filter(release -> !alreadyContainsReleasesId.contains(release.getId()))
-                .map(release -> {
-                    SpotifyRelease spotifyRelease = new SpotifyRelease();
-                    spotifyRelease.setId(release.getId());
-                    spotifyRelease.setName(release.getName());
-                    spotifyRelease.setLocalDate(LocalDate.now());
-                    spotifyRelease.setUser(user);
-                    return spotifyRelease;
-                })
+                .map(release -> convertToSpotifyReleaseEntity(user, release))
                 .collect(Collectors.toSet());
-
         save(checkListRelease);
         return checkListRelease;
+    }
+
+    private static SpotifyRelease convertToSpotifyReleaseEntity(User user, AlbumSimplified release) {
+        SpotifyRelease spotifyRelease = new SpotifyRelease();
+        spotifyRelease.setId(release.getId());
+        spotifyRelease.setName(release.getName());
+        spotifyRelease.setLocalDate(LocalDate.now());
+        spotifyRelease.setUser(user);
+        return spotifyRelease;
     }
 }

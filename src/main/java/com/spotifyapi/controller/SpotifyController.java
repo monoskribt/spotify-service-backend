@@ -1,13 +1,15 @@
 package com.spotifyapi.controller;
 
-import com.spotifyapi.model.SpotifyArtist;
+import com.spotifyapi.dto.spotify_entity.SpotifyArtistDTO;
+import com.spotifyapi.dto.spotify_entity.SpotifyPlaylistsDTO;
+import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
+
 
 import java.util.List;
 import java.util.Set;
@@ -15,44 +17,45 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/spotify")
 @AllArgsConstructor
+@Slf4j
 public class SpotifyController {
 
     private SpotifyService spotifyService;
 
-    @GetMapping("/artist")
-    public List<SpotifyArtist> getMyArtist() {
-        return spotifyService.getFollowedArtist();
+    @GetMapping("/artists")
+    public List<SpotifyArtistDTO> getMyArtist(@RequestHeader(value = "Authorization") String authorizationHeader) {
+        return spotifyService.getFollowedArtist(authorizationHeader, SpotifyArtistDTO.class);
     }
 
-    @GetMapping("/release")
-    public List<AlbumSimplified> getReleasesByPeriod(
-            @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay) {
-        return spotifyService.getReleases(releaseOfDay);
+    @GetMapping("/playlists")
+    public Set<SpotifyPlaylistsDTO> getMyPlaylists(
+            @RequestHeader(value = "Authorization") String authorizationHeader) {
+        return spotifyService.getOfUsersPlaylists(authorizationHeader);
     }
 
-    @GetMapping("/my-playlists")
-    public Set<PlaylistSimplified> getMyPlaylists() {
-        return spotifyService.getOfUsersPlaylists();
+    @GetMapping("/releases")
+    public List<SpotifyReleaseDTO> getReleasesByPeriod(
+            @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay,
+            @RequestHeader(value = "Authorization") String authorizationHeader) {
+        return spotifyService.getReleases(authorizationHeader, releaseOfDay, SpotifyReleaseDTO.class);
     }
 
-    @PostMapping("/save-releases")
-    public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId,
-                                                         @RequestParam ("releaseOfDay") Long releaseOfDay) {
-        try {
-            spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay);
-            return ResponseEntity.ok("Successfully added");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
-        }
+    @PostMapping("/playlists/{playlistId}/releases")
+    public ResponseEntity<Integer> saveReleasesToPlaylist(@PathVariable ("playlistId") String playlistId,
+                                                          @RequestParam ("releaseOfDay") Long releaseOfDay,
+                                                          @RequestHeader(value = "Authorization") String authorizationHeader) {
+        int result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(result);
     }
 
-    @DeleteMapping("/delete-all-from-playlist")
-    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@RequestParam ("playlistId") String playlistId) {
-        try {
-            spotifyService.deleteAllOfTracksFromPlaylistById(playlistId);
-            return ResponseEntity.ok("Successfully removed");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
-        }
+    @DeleteMapping("/playlists/{playlistId}/items")
+    public ResponseEntity<Integer> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId,
+                                                                  @RequestHeader(value = "Authorization") String authorizationHeader) {
+        int result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(result);
     }
 }
