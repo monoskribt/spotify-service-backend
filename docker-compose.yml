@@ -1,27 +1,30 @@
 version: '3.8'
 
 services:
-  spotify-api:
-    image: spotify-api
+  spotify-api-service:
+    image: spotify-api-service
     build:
       context: .
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/spotify-db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://spotify-db:5432/spotify-db
       SPRING_DATASOURCE_USERNAME: spotify-user
       SPRING_DATASOURCE_PASSWORD: spotify-password
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
-      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_HOST: rabbitmq-container
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
       SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_VIRTUAL-HOST: spotify_delivery_host
     depends_on:
-      - postgres
-      - rabbitmq
+      - spotify-db
+      - rabbitmq-container
+    networks:
+      - shared_network
 
-  postgres:
+  spotify-db:
     image: postgres:15
     environment:
       POSTGRES_USER: spotify-user
@@ -29,12 +32,22 @@ services:
       POSTGRES_DB: spotify-db
     ports:
       - "5432:5432"
+    networks:
+      - shared_network
 
-  rabbitmq:
-    image: rabbitmq:management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+  rabbitmq-container:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-container
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    external: true
+
