@@ -1,52 +1,46 @@
 package com.spotifyapi.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.spotifyapi.props.RabbitMQProperties;
+import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
+import com.spotifyapi.dto.TelegramMessageDTO;
+import com.spotifyapi.model.SpotifyRelease;
+import com.spotifyapi.model.User;
 import com.spotifyapi.service.RabbitMQService;
-import com.spotifyapi.service.SpotifyService;
-import com.spotifyapi.service.UserService;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
-import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+
 
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RabbitMQServiceImpl implements RabbitMQService {
 
     private final RabbitTemplate rabbitTemplate;
-    private final SpotifyService spotifyService;
-    private final UserService userService;
     private final Binding binding;
     private final ObjectMapper objectMapper;
 
-
-    @SneakyThrows
     @Override
-    public void sendInfoToTelegram() {
-        List<AlbumSimplified> albumList = spotifyService.getReleases();
+    public void sendMessageToTelegram(User user, Set<SpotifyRelease> releases) {
+        List<SpotifyReleaseDTO> releaseInfo = releases.stream()
+                .map(album -> new SpotifyReleaseDTO(album.getId(), album.getName()))
+                .toList();
 
-        var releaseInfo = albumList.stream()
-                .map(album -> Map.of(
-                        "albumId", album.getId(),
-                        "albumName", album.getName()
-                )).toList();
+        TelegramMessageDTO message = new TelegramMessageDTO(user.getEmail(), releaseInfo);
 
-        Map<String, Object> message = Map.of(
-                "email", userService.getCurrentEmail(),
-                "release", releaseInfo
-        );
-
-
-        String jsonMessage = objectMapper.writeValueAsString(message);
-
-        rabbitTemplate.convertAndSend(binding.getExchange(),
-                binding.getRoutingKey(), jsonMessage);
+        try {
+            String jsonMessage = objectMapper.writeValueAsString(message);
+            rabbitTemplate.convertAndSend(binding.getExchange(), binding.getRoutingKey(), jsonMessage);
+            log.info("Sent message to Rabbit: {}", jsonMessage);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize message: {}", e.getMessage(), e);
+        }
     }
-
 }
+

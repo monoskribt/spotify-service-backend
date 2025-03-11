@@ -17,17 +17,17 @@ public class RabbitMQConfig {
 
     @Bean
     public DirectExchange directExchange() {
-        return new DirectExchange(rabbitMQProperties.getExchange());
+        return new DirectExchange(rabbitMQProperties.exchange());
     }
 
     @Bean
     public Queue queue() {
-        return new Queue(rabbitMQProperties.getQueue(), true);
+        return new Queue(rabbitMQProperties.queue(), true);
     }
 
     @Bean
     public Binding binding(DirectExchange directExchange, Queue queue) {
         return BindingBuilder.bind(queue)
-                .to(directExchange).with(rabbitMQProperties.getRoutingKey());
+                .to(directExchange).with(rabbitMQProperties.routingKey());
     }
 }

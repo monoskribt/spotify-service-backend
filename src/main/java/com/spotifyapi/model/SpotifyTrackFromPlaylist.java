@@ -20,5 +20,4 @@ public class SpotifyTrackFromPlaylist {
     @ManyToOne
     @JoinColumn(name = "playlist_id", nullable = false)
     private SpotifyUserPlaylist userPlaylist;
-
 }

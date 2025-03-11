@@ -17,11 +17,16 @@ public class Logger {
     private Long id;
 
     private String username;
-    private String userId;
-    private String methodName;
-    private String parameters;
-    private LocalDateTime DateTime;
-    private String message;
-    private String status;
 
+    private String userId;
+
+    private String methodName;
+
+    private String parameters;
+
+    private LocalDateTime DateTime;
+
+    private String message;
+
+    private String status;
 }
