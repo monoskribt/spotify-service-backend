@@ -166,15 +166,13 @@ public class SpotifyServiceImpl implements SpotifyService {
     public int saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay) {
         List<AlbumSimplified> releases =
                 getReleases(authorizationHeader, releaseOfDay, AlbumSimplified.class);
-
         List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
-
+        
         SpotifyUserPlaylist playlist = playlistRepository.findById(playlistId)
                 .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
 
         Set<String> existingTrackIds = spotifyTrackService
                 .getExistingTrackIds(playlist.getId());
-
 
         List<String> trackUrl = releases
                 .stream()
@@ -195,9 +193,14 @@ public class SpotifyServiceImpl implements SpotifyService {
         if(saveTrackToDB.isEmpty()) {
             return Response.SC_NO_CONTENT;
         }
-
         trackRepository.saveAll(saveTrackToDB);
 
+        addTracksToSpotify(playlistId, trackUrl);
+        
+        return Response.SC_OK;
+    }
+
+    private void addTracksToSpotify(String playlistId, List<String> trackUrl) {
         for (int i = 0; i < trackUrl.size(); i += 50) {
             List<String> trackUrlPart = trackUrl.subList(i, Math.min(i + 50, trackUrl.size()));
 
@@ -210,7 +213,6 @@ public class SpotifyServiceImpl implements SpotifyService {
                 throw new SpotifyApiException("Error during to save of tracks to playlist: " + e.getMessage());
             }
         }
-        return Response.SC_OK;
     }
 
     @Override
@@ -227,34 +229,42 @@ public class SpotifyServiceImpl implements SpotifyService {
             log.info("Playlist is already empty");
             return Response.SC_NO_CONTENT;
         }
+        JsonArray removeTracks = convertTracksArrayToJsonTracksArray(allTracks);
+        try {
+            return removeTracksFromSpotifyPlaylist(playlistId, removeTracks, tracksToRemove);
+        } catch (Exception e) {
+            log.warn("Error while removing tracks from playlist: {}", e.getMessage());
+        }
+        return Response.SC_INTERNAL_SERVER_ERROR;
+    }
 
-        JsonArray removeTracks = allTracks.stream()
+    private static JsonArray convertTracksArrayToJsonTracksArray(List<PlaylistTrack> allTracks) {
+        return allTracks.stream()
                 .map(track -> {
                     JsonObject trackObj = new JsonObject();
                     trackObj.addProperty("uri", track.getTrack().getUri());
                     return trackObj;
                 })
                 .collect(JsonArray::new, JsonArray::add, JsonArray::addAll);
+    }
 
-        try {
-            for(int i = 0; i < removeTracks.size(); i+= 50) {
-                JsonArray pathArrayToRemove = new JsonArray();
+    private int removeTracksFromSpotifyPlaylist(String playlistId,
+                                                JsonArray removeTracks,
+                                                List<SpotifyTrackFromPlaylist> tracksToRemove)
+            throws IOException, SpotifyWebApiException, ParseException {
 
-                for(int j = i; j < Math.min(i + 50, removeTracks.size()); j++) {
-                    pathArrayToRemove.add(removeTracks.get(j));
-                }
+        for(int i = 0; i < removeTracks.size(); i+= 50) {
+            JsonArray pathArrayToRemove = new JsonArray();
 
-                spotifyApi.removeItemsFromPlaylist(playlistId, pathArrayToRemove)
-                        .build()
-                        .execute();
+            for(int j = i; j < Math.min(i + 50, removeTracks.size()); j++) {
+                pathArrayToRemove.add(removeTracks.get(j));
             }
 
-            trackRepository.deleteAll(tracksToRemove);
-
-            return Response.SC_OK;
-        } catch (Exception e) {
-            log.warn("Error while removing tracks from playlist: {}", e.getMessage());
+            spotifyApi.removeItemsFromPlaylist(playlistId, pathArrayToRemove)
+                    .build()
+                    .execute();
         }
-        return Response.SC_INTERNAL_SERVER_ERROR;
+        trackRepository.deleteAll(tracksToRemove);
+        return Response.SC_OK;
     }
 }
