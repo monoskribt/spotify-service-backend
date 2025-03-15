@@ -31,7 +31,6 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.*;
 
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -56,6 +55,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final SimpMessagingTemplate messagingTemplate;
     private final PaginationService paginationService;
 
+
     @Override
     @Cacheable(value = "artists", key = "#authorizationHeader")
     public <T> List<T> getFollowedArtist(String authorizationHeader, Class<T> returnTypeOfClass) {
@@ -67,6 +67,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .collect(Collectors.toList());
     }
 
+
     private <T> T createNewInstanceOfArtist(Class<T> returnTypeOf, SpotifyArtist artist) {
         if(returnTypeOf.equals(SpotifyArtist.class)) {
             return returnTypeOf.cast(artist);
@@ -76,6 +77,7 @@ public class SpotifyServiceImpl implements SpotifyService {
 
         throw new IllegalArgumentException("Error type of class: " + returnTypeOf.getName());
     }
+
 
     @Override
     @Cacheable(value = "playlists", key = "#authorizationHeader")
@@ -96,10 +98,12 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .collect(Collectors.toSet());
     }
 
+
     @Override
     public List<AlbumSimplified> getReleases(String authorizationHeader) {
         return getReleases(authorizationHeader, THIRTY_DAYS, AlbumSimplified.class);
     }
+
 
     @Override
     @Cacheable(value = "releases", key = "#authorizationHeader + '_' + #releaseOfDay")
@@ -135,6 +139,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .collect(Collectors.toList());
     }
 
+
     private List<AlbumSimplified> processedArtist(Long releaseOfDay,
                                                   SpotifyArtist artist,
                                                   AtomicInteger processedArtistsCounter,
@@ -151,6 +156,7 @@ public class SpotifyServiceImpl implements SpotifyService {
         return albums;
     }
 
+
     public <T> T createNewInstanceOfReleases(Class<T> returnTypeOf, AlbumSimplified album) {
         if(returnTypeOf.equals(AlbumSimplified.class)) {
             return returnTypeOf.cast(album);
@@ -160,6 +166,7 @@ public class SpotifyServiceImpl implements SpotifyService {
 
         throw new IllegalArgumentException("Error type of class: " + returnTypeOf.getName());
     }
+
 
     @Override
     @Transactional
@@ -200,6 +207,7 @@ public class SpotifyServiceImpl implements SpotifyService {
         return Response.SC_OK;
     }
 
+
     private void addTracksToSpotify(String playlistId, List<String> trackUrl) {
         for (int i = 0; i < trackUrl.size(); i += 50) {
             List<String> trackUrlPart = trackUrl.subList(i, Math.min(i + 50, trackUrl.size()));
@@ -214,6 +222,7 @@ public class SpotifyServiceImpl implements SpotifyService {
             }
         }
     }
+
 
     @Override
     @Transactional
@@ -238,6 +247,7 @@ public class SpotifyServiceImpl implements SpotifyService {
         return Response.SC_INTERNAL_SERVER_ERROR;
     }
 
+
     private static JsonArray convertTracksArrayToJsonTracksArray(List<PlaylistTrack> allTracks) {
         return allTracks.stream()
                 .map(track -> {
@@ -247,6 +257,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                 })
                 .collect(JsonArray::new, JsonArray::add, JsonArray::addAll);
     }
+
 
     private int removeTracksFromSpotifyPlaylist(String playlistId,
                                                 JsonArray removeTracks,

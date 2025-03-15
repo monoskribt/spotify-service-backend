@@ -9,8 +9,6 @@ import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 
@@ -59,11 +57,7 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
         log.info("is working method checkReleasesForUser with token: {}", authorizationHeader );
         List<AlbumSimplified> albumList = spotifyService.getReleases(authorizationHeader);
 
-        List<String> alreadyContainsReleasesId = getReleasesByUserId(user.getId())
-                .stream()
-                .map(SpotifyRelease::getId)
-                .toList();
-        log.info(String.valueOf(alreadyContainsReleasesId));
+        List<String> alreadyContainsReleasesId = getAlreadyContainsReleasesId(user);
 
         Set<SpotifyRelease> checkListRelease = albumList.stream()
                 .filter(release -> !alreadyContainsReleasesId.contains(release.getId()))
@@ -71,6 +65,15 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
                 .collect(Collectors.toSet());
         save(checkListRelease);
         return checkListRelease;
+    }
+
+    private List<String> getAlreadyContainsReleasesId(User user) {
+        List<String> alreadyContainsReleasesId = getReleasesByUserId(user.getId())
+                .stream()
+                .map(SpotifyRelease::getId)
+                .toList();
+        log.info(String.valueOf(alreadyContainsReleasesId));
+        return alreadyContainsReleasesId;
     }
 
     private static SpotifyRelease convertToSpotifyReleaseEntity(User user, AlbumSimplified release) {

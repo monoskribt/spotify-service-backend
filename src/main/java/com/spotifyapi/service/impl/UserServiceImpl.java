@@ -117,28 +117,38 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Transactional
     @Override
     public void updateUserData(TokensDTO tokens) {
+        // get user from db
         User user = getUserFromDataBase();
+        log.info("Try to update user with username: {}", user.getUsername());
 
+        // update access and refresh tokens
         updateUserTokens(user, tokens);
 
-        List<PlaylistSimplified> userPlaylists = getUserPlaylists();
+        // check user playlist in db. If playlist in db is not present on spotify - delete it.
+        List<PlaylistSimplified> spotifyUserPlaylists = getUserPlaylists();
+        List<SpotifyUserPlaylist> dbUserPlaylist = playlistRepository.findAll();
 
-        List<SpotifyTrackFromPlaylist> newTracks = new ArrayList<>();
+        List<SpotifyUserPlaylist> playlistFromDbToDelete =
+                checkAndManageUserPlaylist(spotifyUserPlaylists, dbUserPlaylist);
+        playlistRepository.deleteAll(playlistFromDbToDelete);
 
-        for(PlaylistSimplified playlist : userPlaylists) {
-            Optional<SpotifyUserPlaylist> existingPlaylist = playlistRepository
-                    .findById(playlist.getId());
-            if(existingPlaylist.isPresent()) {
-                newTracks.addAll(getNewTracksFromSpotifyPlaylistAndSaveToDb(existingPlaylist.get()));
-            }
-            else {
-                playlistService.savePlaylistToDatabase(playlist, user);
-            }
-        }
+
+        // check tracks in playlist on spotify and update them in db
+        List<SpotifyTrackFromPlaylist> newTracks = spotifyUserPlaylists.stream()
+                .map(playlist -> playlistRepository.findById(playlist.getId())
+                        .map(this::getNewTracksFromSpotifyPlaylistAndSaveToDb)
+                        .orElseGet(() -> {
+                            playlistService.savePlaylistToDatabase(playlist, user);
+                            return Collections.emptyList();
+                        }))
+                .flatMap(List::stream)
+                .toList();
+
         trackRepository.saveAll(newTracks);
-        userRepository.save(user);
+        log.info("Successfully updated user: {}", user.getUsername());
     }
 
     private User getUserFromDataBase() {
@@ -172,9 +182,20 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    private List<SpotifyUserPlaylist> checkAndManageUserPlaylist(
+            List<PlaylistSimplified> spotifyUserPlaylists,
+            List<SpotifyUserPlaylist> dbUserPlaylist
+    ) {
+        Set<String> spotifyUserPlaylistId = spotifyUserPlaylists.stream()
+                .map(PlaylistSimplified::getId)
+                .collect(Collectors.toSet());;
+        return dbUserPlaylist.stream()
+                .filter(dbPlaylist -> !spotifyUserPlaylistId.contains(dbPlaylist.getId()))
+                .toList();
+    }
+
     private List<SpotifyTrackFromPlaylist> getNewTracksFromSpotifyPlaylistAndSaveToDb(
             SpotifyUserPlaylist spotifyUserPlaylist) {
-        List<SpotifyTrackFromPlaylist> newTracks = new ArrayList<>();
         Set<String> playlistTracksUrl = spotifyTrackService
                 .getExistingTrackIds(spotifyUserPlaylist.getId());
 
@@ -188,17 +209,12 @@ public class UserServiceImpl implements UserService {
             throw new SpotifyApiException("Error getting of playlist items: " + e.getMessage());
         }
 
-        for(PlaylistTrack track : tracksFromPlaylist.getItems()) {
-            if(!playlistTracksUrl.contains(track.getTrack().getId())) {
-                SpotifyTrackFromPlaylist trackEntity =
-                        spotifyTrackService
-                                .convertTrackToTrackDBEntity(
-                                        new TrackWrapper((Track) track.getTrack()), spotifyUserPlaylist);
-                newTracks.add(trackEntity);
-            }
-        }
-
-        return newTracks;
+        return Arrays.stream(tracksFromPlaylist.getItems())
+                .filter(track -> !playlistTracksUrl.contains(track.getTrack().getId()))
+                .map(track -> spotifyTrackService
+                        .convertTrackToTrackDBEntity(new TrackWrapper((Track) track.getTrack()),
+                                spotifyUserPlaylist))
+                .toList();
     }
 
     @Override

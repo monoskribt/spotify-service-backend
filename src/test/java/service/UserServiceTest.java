@@ -5,7 +5,6 @@ import com.spotifyapi.model.User;
 import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.TokenService;
 import com.spotifyapi.service.impl.UserServiceImpl;
-import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +34,6 @@ public class UserServiceTest {
     private User user_2;
     private User user_3;
 
-    @SneakyThrows
     @BeforeEach
     void init() {
         user_1 = new User();
