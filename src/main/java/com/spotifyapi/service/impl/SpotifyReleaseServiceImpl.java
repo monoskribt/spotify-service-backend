@@ -68,15 +68,13 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
     }
 
     private List<String> getAlreadyContainsReleasesId(User user) {
-        List<String> alreadyContainsReleasesId = getReleasesByUserId(user.getId())
+        return getReleasesByUserId(user.getId())
                 .stream()
                 .map(SpotifyRelease::getId)
                 .toList();
-        log.info(String.valueOf(alreadyContainsReleasesId));
-        return alreadyContainsReleasesId;
     }
 
-    private static SpotifyRelease convertToSpotifyReleaseEntity(User user, AlbumSimplified release) {
+    private SpotifyRelease convertToSpotifyReleaseEntity(User user, AlbumSimplified release) {
         SpotifyRelease spotifyRelease = new SpotifyRelease();
         spotifyRelease.setId(release.getId());
         spotifyRelease.setName(release.getName());

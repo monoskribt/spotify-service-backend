@@ -179,7 +179,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
 
         Set<String> existingTrackIds = spotifyTrackService
-                .getExistingTrackIds(playlist.getId());
+                .getExistingTrackIdsFromDb(playlist.getId());
 
         List<String> trackUrl = releases
                 .stream()
