@@ -1,3 +1,5 @@
+package controller;
+
 import com.spotifyapi.SpotifyApiApplication;
 import com.spotifyapi.controller.ProjectController;
 import com.spotifyapi.dto.TokensDTO;
@@ -50,7 +52,7 @@ public class ProjectControllerTest {
     }
 
     @Test
-    void login() throws Exception {
+    void loginTest() throws Exception {
         when(spotifyAuth.authorize()).thenReturn(spotifyAuthUrl);
 
         mockMvc.perform(get("/api/login"))
@@ -61,7 +63,7 @@ public class ProjectControllerTest {
     }
 
     @Test
-    void getProfileWithSaveUser() throws Exception {
+    void getProfileWithSaveUserTest() throws Exception {
         TokensDTO tokensDTO = new TokensDTO(accessToken, refreshToken);
 
         when(spotifyAuth.getAuthorizationTokens(authorizeCode))
@@ -79,7 +81,7 @@ public class ProjectControllerTest {
     }
 
     @Test
-    void getProfileWithUpdateUser() throws Exception {
+    void getProfileWithUpdateUserTest() throws Exception {
         TokensDTO tokensDTO = new TokensDTO(accessToken, refreshToken);
 
         when(spotifyAuth.getAuthorizationTokens(authorizeCode))

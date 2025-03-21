@@ -1,3 +1,5 @@
+package controller;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spotifyapi.SpotifyApiApplication;
@@ -37,15 +39,17 @@ class SpotifyControllerTest {
 
     private String accessToken;
     private Long releaseOfDay;
+    private String playlistId;
 
     @BeforeEach
     void init() {
         accessToken = "test-token";
         releaseOfDay = 30L;
+        playlistId = "playlist-1";
     }
 
     @Test
-    void testGetMyArtist() throws Exception {
+    void getMyArtisTest() throws Exception {
         List<SpotifyArtistDTO> artists = List.of(
                 new SpotifyArtistDTO("Artist-1"),
                 new SpotifyArtistDTO("Artist-2")
@@ -64,7 +68,7 @@ class SpotifyControllerTest {
     }
 
     @Test
-    void getReleases() throws Exception {
+    void getReleasesTest() throws Exception {
         List<SpotifyReleaseDTO> listOfReleases = List.of(
                 new SpotifyReleaseDTO("1", "Release-1"),
                 new SpotifyReleaseDTO("2", "Release-2"),
@@ -86,7 +90,7 @@ class SpotifyControllerTest {
     }
 
     @Test
-    void getMyPlaylists() throws Exception {
+    void getMyPlaylistsTest() throws Exception {
         Set<SpotifyPlaylistsDTO> playlists = new HashSet<>();
         playlists.add(new SpotifyPlaylistsDTO("1", "Playlist-1"));
         playlists.add(new SpotifyPlaylistsDTO("2", "Playlist-2"));
@@ -113,9 +117,7 @@ class SpotifyControllerTest {
     }
 
     @Test
-    void saveReleasesWithOKStatus() throws Exception {
-        String playlistId = "playlist-1";
-
+    void saveReleasesWithOKStatusTest() throws Exception {
         when(spotifyService.saveReleasesToPlaylistById(accessToken, playlistId, releaseOfDay))
                 .thenReturn(Response.SC_OK);
 
@@ -126,9 +128,7 @@ class SpotifyControllerTest {
     }
 
     @Test
-    void saveReleasesWithNoContentStatus() throws Exception {
-        String playlistId = "playlist-1";
-
+    void saveReleasesWithNoContentStatusTest() throws Exception {
         when(spotifyService.saveReleasesToPlaylistById(accessToken, playlistId, releaseOfDay))
                 .thenReturn(Response.SC_NO_CONTENT);
 
@@ -140,9 +140,7 @@ class SpotifyControllerTest {
     }
 
     @Test
-    void deleteAllItemsFromPlaylistWithOKStatus() throws Exception {
-        String playlistId = "playlist-1";
-
+    void deleteAllItemsFromPlaylistWithOKStatusTest() throws Exception {
         when(spotifyService.deleteAllOfTracksFromPlaylistById(accessToken, playlistId))
                 .thenReturn(Response.SC_OK);
 
@@ -152,9 +150,7 @@ class SpotifyControllerTest {
     }
 
     @Test
-    void deleteAllItemsFromPlaylistWithNoContentStatus() throws Exception {
-        String playlistId = "playlist-1";
-
+    void deleteAllItemsFromPlaylistWithNoContentStatusTest() throws Exception {
         when(spotifyService.deleteAllOfTracksFromPlaylistById(accessToken, playlistId))
                 .thenReturn(Response.SC_NO_CONTENT);
 
