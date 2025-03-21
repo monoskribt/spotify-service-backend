@@ -68,11 +68,11 @@ public class UserServiceImpl implements UserService {
 
             List<SpotifyTrackFromPlaylist> saveTrackToDb = playlists.stream()
                     .peek(playlist -> playlistService.savePlaylistToDatabase(playlist, newUser))
-                            .map(playlist -> playlistRepository.findById(playlist.getId())
-                                    .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found after save")))
-                                    .flatMap(this::getTracksFromPlaylistAndConvertToNewTrackEntity)
+                    .map(playlist -> playlistRepository.findById(playlist.getId())
+                            .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found after save")))
+                    .flatMap(playlist -> getTracksFromPlaylist(playlist)
+                            .map(track -> convertTrackToDBEntity(track, playlist)))
                     .toList();
-
             trackRepository.saveAll(saveTrackToDb);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -100,16 +100,14 @@ public class UserServiceImpl implements UserService {
         return newUser;
     }
 
-    private Stream<SpotifyTrackFromPlaylist> getTracksFromPlaylistAndConvertToNewTrackEntity(
-            SpotifyUserPlaylist spotifyUserPlaylist) {
-        return Arrays.stream(
-                        spotifyTrackService
-                                .getTracksFromSpotifyPlaylistById(spotifyUserPlaylist).getItems()
-                )
+    private Stream<Track> getTracksFromPlaylist(SpotifyUserPlaylist playlist) {
+        return Arrays.stream(spotifyTrackService.getTracksFromSpotifyPlaylistById(playlist).getItems())
                 .filter(Objects::nonNull)
-                .map(trackItem -> (Track) trackItem.getTrack())
-                .map(track -> spotifyTrackService
-                        .convertTrackToTrackDBEntity(new TrackWrapper(track), spotifyUserPlaylist));
+                .map(trackItem -> (Track) trackItem.getTrack());
+    }
+
+    private SpotifyTrackFromPlaylist convertTrackToDBEntity(Track track, SpotifyUserPlaylist playlist) {
+        return spotifyTrackService.convertTrackToTrackDBEntity(new TrackWrapper(track), playlist);
     }
 
     @Transactional
